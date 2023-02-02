@@ -1,2 +1,2 @@
 # golox
-An interpreter for the Lox language written in Go.
+An interpreter for [the Lox language](https://craftinginterpreters.com) written in Go.
