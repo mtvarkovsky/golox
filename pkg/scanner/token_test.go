@@ -87,6 +87,10 @@ func TestTokenTypeToString(t *testing.T) {
 			str:   "LESS_EQUAL",
 		},
 		{
+			tType: SlashSlash,
+			str:   "SLASH_SLASH",
+		},
+		{
 			tType: Identifier,
 			str:   "IDENTIFIER",
 		},
@@ -163,7 +167,7 @@ func TestTokenTypeToString(t *testing.T) {
 			str:   "WHILE",
 		},
 		{
-			tType: Eof,
+			tType: EOF,
 			str:   "EOF",
 		},
 	}

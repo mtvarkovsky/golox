@@ -3,6 +3,8 @@ package scanner
 import (
 	"fmt"
 	"strconv"
+	"strings"
+	"unicode"
 )
 
 type (
@@ -19,13 +21,75 @@ type (
 		lexemeStartPos int
 		currentPos     int
 		currentLine    int
-
-		keywords map[string]TokenType
 	}
 
 	Error struct {
 		Line int
 		Err  error
+	}
+)
+
+var (
+	Keywords = map[string]TokenType{
+		"and":    And,
+		"class":  Class,
+		"else":   Else,
+		"false":  False,
+		"for":    For,
+		"fun":    Fun,
+		"if":     If,
+		"nil":    Nil,
+		"or":     Or,
+		"print":  Print,
+		"return": Return,
+		"super":  Super,
+		"this":   This,
+		"true":   True,
+		"var":    Var,
+		"while":  While,
+	}
+
+	SingleCharLexemeToToken = map[rune]TokenType{
+		'(': LeftParen,
+		')': RightParen,
+		'{': LeftBrace,
+		'}': RightBrace,
+		',': Comma,
+		'.': Dot,
+		'-': Minus,
+		'+': Plus,
+		';': Semicolon,
+		'*': Star,
+		'!': Bang,
+		'=': Equal,
+		'<': Less,
+		'>': Greater,
+		'/': Slash,
+	}
+
+	TwoCharLexemeToToken = map[string]TokenType{
+		"!=": BangEqual,
+		"==": EqualEqual,
+		"<=": LessEqual,
+		">=": GreaterEqual,
+	}
+
+	StringCharLexemeToToken = map[rune]TokenType{
+		'"': String,
+	}
+
+	IgnoredCharsSet = map[rune]bool{
+		' ':  true,
+		'\r': true,
+		'\t': true,
+	}
+
+	NewLineCharsSet = map[rune]bool{
+		'\n': true,
+	}
+
+	CommentCharsSet = map[string]bool{
+		"//": true,
 	}
 )
 
@@ -36,25 +100,6 @@ func NewScanner(input string) Scanner {
 		lexemeStartPos: 0,
 		currentPos:     0,
 		currentLine:    1,
-
-		keywords: map[string]TokenType{
-			"and":    And,
-			"class":  Class,
-			"else":   Else,
-			"false":  False,
-			"for":    For,
-			"fun":    Fun,
-			"if":     If,
-			"nil":    Nil,
-			"or":     Or,
-			"print":  Print,
-			"return": Return,
-			"super":  Super,
-			"this":   This,
-			"true":   True,
-			"var":    Var,
-			"while":  While,
-		},
 	}
 }
 
@@ -68,7 +113,7 @@ func (s *scanner) ScanTokens() ([]Token, []*Error) {
 		}
 	}
 
-	s.appendToken(NewToken(Eof, "", nil, s.currentLine))
+	s.appendToken(NewToken(EOF, "", nil, s.currentLine))
 
 	return s.tokens, errs
 }
@@ -85,109 +130,58 @@ func (s *scanner) addToken(tType TokenType, literal any) {
 func (s *scanner) scanToken() *Error {
 	c := s.next()
 
-	switch c {
+	if singleCharToken, foundSingleChar := SingleCharLexemeToToken[c]; foundSingleChar {
+		nextC := s.peek()
 
-	// Single char tokens
-	case '(':
-		s.addToken(LeftParen, nil)
-	case ')':
-		s.addToken(RightParen, nil)
-	case '{':
-		s.addToken(LeftBrace, nil)
-	case '}':
-		s.addToken(RightBrace, nil)
-	case ',':
-		s.addToken(Comma, nil)
-	case '.':
-		s.addToken(Dot, nil)
-	case '-':
-		s.addToken(Minus, nil)
-	case '+':
-		s.addToken(Plus, nil)
-	case ';':
-		s.addToken(Semicolon, nil)
-	case '*':
-		s.addToken(Star, nil)
+		if nextC != 0 {
+			twoCharBuffer := strings.Builder{}
+			twoCharBuffer.WriteRune(c)
+			twoCharBuffer.WriteRune(nextC)
 
-	// Single or two character tokens
-	case '!':
-		if s.match('=') {
-			s.addToken(BangEqual, nil)
-		} else {
-			s.addToken(Bang, nil)
-		}
-	case '=':
-		if s.match('=') {
-			s.addToken(EqualEqual, nil)
-		} else {
-			s.addToken(Equal, nil)
-		}
-	case '<':
-		if s.match('=') {
-			s.addToken(LessEqual, nil)
-		} else {
-			s.addToken(Less, nil)
-		}
-	case '>':
-		if s.match('=') {
-			s.addToken(GreaterEqual, nil)
-		} else {
-			s.addToken(Greater, nil)
-		}
-
-	case '/':
-		if s.match('/') {
-			for s.peek() != '\n' && !s.isAtEnd {
+			if twoCharToken, foundTwoChar := TwoCharLexemeToToken[twoCharBuffer.String()]; foundTwoChar {
 				_ = s.next()
+				s.addToken(twoCharToken, nil)
+				return nil
 			}
-		} else {
-			s.addToken(Slash, nil)
+
+			if _, foundComment := CommentCharsSet[twoCharBuffer.String()]; foundComment {
+				for s.peek() != '\n' && !s.isAtEnd {
+					_ = s.next()
+				}
+				return nil
+			}
 		}
 
-	// Ignored whitespace chars
-	case ' ':
-	case '\r':
-	case '\t':
+		s.addToken(singleCharToken, nil)
+		return nil
+	}
 
-	// Advance line counter
-	case '\n':
+	if _, foundIgnored := IgnoredCharsSet[c]; foundIgnored {
+		return nil
+	}
+
+	if _, foundNewLine := NewLineCharsSet[c]; foundNewLine {
 		s.currentLine++
+		return nil
+	}
 
-	// Strings
-	case '"':
+	if _, foundString := StringCharLexemeToToken[c]; foundString {
 		return s.string()
-
-	// Unrecognized token
-	default:
-		if s.isDigit(c) {
-			return s.number()
-		}
-
-		if s.isAlpha(c) {
-			s.identifier()
-			return nil
-		}
-
-		return &Error{
-			Err:  fmt.Errorf("unexpected character %c", c),
-			Line: s.currentLine,
-		}
 	}
 
-	return nil
-}
-
-func (s *scanner) match(expected rune) bool {
-	if s.isAtEnd {
-		return false
+	if s.isDigit(c) {
+		return s.number()
 	}
 
-	if rune(s.input[s.currentPos]) != expected {
-		return false
+	if s.isAlpha(c) {
+		s.identifier()
+		return nil
 	}
 
-	s.currentPos++
-	return true
+	return &Error{
+		Err:  fmt.Errorf("unexpected character %c", c),
+		Line: s.currentLine,
+	}
 }
 
 func (s *scanner) next() rune {
@@ -266,9 +260,7 @@ func (s *scanner) number() *Error {
 }
 
 func (s *scanner) isAlpha(c rune) bool {
-	return (c >= 'a' && c <= 'z') ||
-		(c >= 'A' && c <= 'Z') ||
-		c == '_'
+	return unicode.IsLetter(c) || c == '_'
 }
 
 func (s *scanner) isAlphaNumeric(c rune) bool {
@@ -282,7 +274,7 @@ func (s *scanner) identifier() {
 
 	val := s.input[s.lexemeStartPos:s.currentPos]
 
-	tokenType, found := s.keywords[val]
+	tokenType, found := Keywords[val]
 	if !found {
 		tokenType = Identifier
 	}

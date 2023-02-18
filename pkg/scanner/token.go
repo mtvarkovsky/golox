@@ -27,6 +27,7 @@ const (
 	GreaterEqual
 	Less
 	LessEqual
+	SlashSlash
 
 	// Literals
 	Identifier
@@ -51,7 +52,7 @@ const (
 	Var
 	While
 
-	Eof
+	EOF
 )
 
 func (tt TokenType) String() string {
@@ -78,6 +79,7 @@ func (tt TokenType) String() string {
 		"GREATER_EQUAL",
 		"LESS",
 		"LESS_EQUAL",
+		"SLASH_SLASH",
 
 		// Literals
 		"IDENTIFIER",

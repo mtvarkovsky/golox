@@ -2517,7 +2517,7 @@ func TestScanner_Success(t *testing.T) {
 			line:      124,
 		},
 		{
-			tokenType: Eof,
+			tokenType: EOF,
 			lexeme:    ``,
 			literal:   nil,
 			line:      125,
