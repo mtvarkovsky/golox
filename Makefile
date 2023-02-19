@@ -17,6 +17,10 @@ help: ## help information about make commands
 build: ## builds the executable and places it to ./build/
 	go build -o ${BUILD_OUT} ${BUILD_SRC}
 
+.PHONY: generate
+generate: ## runs go generate ./...
+	go generate ./...
+
 .PHONY: golox
 golox: build ## runs the interpreter executable from ./build/
 	${BUILD_OUT}
