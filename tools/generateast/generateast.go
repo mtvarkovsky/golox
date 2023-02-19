@@ -17,7 +17,7 @@ type (
 )
 
 var (
-	rules = []string{
+	expressionRules = []string{
 		"Binary   : left Expression, operator scanner.Token, right Expression",
 		"Unary    : operator scanner.Token, right Expression",
 		"Literal  : value any",
@@ -36,7 +36,7 @@ func main() {
 	f, err := os.Create(destination)
 
 	gen := newGenerator(pkg, destination)
-	if err = gen.defineAST("Expression", rules); err != nil {
+	if err = gen.defineAST("Expression", expressionRules); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(65)
 		return
