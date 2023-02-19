@@ -36,7 +36,7 @@ func main() {
 	f, err := os.Create(destination)
 
 	gen := newGenerator(pkg, destination)
-	if err = gen.defineAST(rules); err != nil {
+	if err = gen.defineAST("Expression", rules); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(65)
 		return
@@ -53,7 +53,7 @@ func newGenerator(pkg string, destination string) *generator {
 	}
 }
 
-func (g *generator) defineAST(rules []string) (err error) {
+func (g *generator) defineAST(baseName string, rules []string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("can't generate ast boilerplate: %v", r)
@@ -75,12 +75,12 @@ func (g *generator) defineAST(rules []string) (err error) {
 
 	// define expression interface
 	g.builder.WriteString("type ")
-	g.builder.WriteString("Expression interface {\n")
-	g.builder.WriteString("\tAccept(visitor ExpressionVisitor) any\n")
+	g.builder.WriteString(fmt.Sprintf("%s interface {\n", baseName))
+	g.builder.WriteString(fmt.Sprintf("\tAccept(visitor %sVisitor) any\n", baseName))
 	g.builder.WriteString("}\n\n")
 
 	// define expression visitor signature
-	g.builder.WriteString("type ExpressionVisitor = func(Expression) any\n")
+	g.builder.WriteString(fmt.Sprintf("type %sVisitor = func(%s) any\n", baseName, baseName))
 
 	// go through all rules
 	for _, rule := range rules {
@@ -94,7 +94,7 @@ func (g *generator) defineAST(rules []string) (err error) {
 		g.builder.WriteString("type ")
 		g.builder.WriteString(name)
 		g.builder.WriteString(" interface {\n")
-		g.builder.WriteString("\tExpression\n")
+		g.builder.WriteString(fmt.Sprintf("\t%s\n", baseName))
 		// for each field add getter
 		for _, field := range fields {
 			fieldParts := strings.Split(strings.Trim(field, " "), " ")
@@ -160,7 +160,7 @@ func (g *generator) defineAST(rules []string) (err error) {
 		g.builder.WriteString(strings.ToLower(name))
 		g.builder.WriteString("")
 		g.builder.WriteString(") ")
-		g.builder.WriteString("Accept(visitor ExpressionVisitor) any {\n")
+		g.builder.WriteString(fmt.Sprintf("Accept(visitor %sVisitor) any {\n", baseName))
 		g.builder.WriteString("\treturn visitor(e)")
 		g.builder.WriteString("\n}\n")
 
