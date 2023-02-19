@@ -25,6 +25,7 @@ type (
 
 	Error struct {
 		Line int
+		Pos  int
 		Err  error
 	}
 )
@@ -180,6 +181,7 @@ func (s *scanner) scanToken() *Error {
 
 	return &Error{
 		Err:  fmt.Errorf("unexpected character %c", c),
+		Pos:  s.currentPos,
 		Line: s.currentLine,
 	}
 }
@@ -218,6 +220,7 @@ func (s *scanner) string() *Error {
 	if s.isAtEnd {
 		return &Error{
 			Line: s.currentLine,
+			Pos:  s.currentPos,
 			Err:  fmt.Errorf("unterminated string"),
 		}
 	}
@@ -251,6 +254,7 @@ func (s *scanner) number() *Error {
 	if err != nil {
 		return &Error{
 			Line: s.currentLine,
+			Pos:  s.currentPos,
 			Err:  fmt.Errorf("unsopported number format"),
 		}
 	}

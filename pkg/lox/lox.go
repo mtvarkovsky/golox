@@ -49,7 +49,7 @@ func (lox *TreeWalkInterpreter) Run(source string) {
 	scnr := scanner.NewScanner(source)
 	tokens, errs := scnr.ScanTokens()
 	for _, err := range errs {
-		lox.Error(err.Line, err.Error())
+		lox.Error(err.Line, err.Pos, err.Error())
 	}
 
 	for _, t := range tokens {
@@ -57,14 +57,14 @@ func (lox *TreeWalkInterpreter) Run(source string) {
 	}
 }
 
-func (lox *TreeWalkInterpreter) Error(line int, message string) {
-	lox.Report(line, "", message)
+func (lox *TreeWalkInterpreter) Error(line int, pos int, message string) {
+	lox.Report(line, pos, "", message)
 }
 
-func (lox *TreeWalkInterpreter) Report(line int, where string, message string) {
+func (lox *TreeWalkInterpreter) Report(line int, pos int, where string, message string) {
 	_, _ = fmt.Fprintln(
 		os.Stderr,
-		fmt.Sprintf("[Line %d] Error %s: %s", line, where, message),
+		fmt.Sprintf("[Line %d][%d] Error %s: %s", line, pos, where, message),
 	)
 	lox.hadError = true
 }
