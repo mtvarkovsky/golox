@@ -5,9 +5,6 @@ import (
 	"strings"
 )
 
-type PV struct {
-}
-
 func PrinterVisitor(expression Expression) string {
 	switch e := expression.(type) {
 	case Binary:
