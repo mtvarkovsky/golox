@@ -3,6 +3,8 @@ package lox
 import (
 	"bufio"
 	"fmt"
+	"github.com/mtvarkovsky/golox/pkg/ast"
+	"github.com/mtvarkovsky/golox/pkg/parser"
 	"github.com/mtvarkovsky/golox/pkg/scanner"
 	"os"
 )
@@ -49,16 +51,28 @@ func (lox *TreeWalkInterpreter) Run(source string) {
 	scnr := scanner.NewScanner(source)
 	tokens, errs := scnr.ScanTokens()
 	for _, err := range errs {
-		lox.Error(err.Line, err.Pos, err.Error())
+		lox.ScannerError(err)
 	}
 
-	for _, t := range tokens {
-		fmt.Println(t)
+	prsr := parser.NewParser(tokens)
+	expression, err := prsr.Parse()
+	if err != nil {
+		lox.ParserError(err)
 	}
+
+	fmt.Println(ast.PrinterVisitor(expression))
 }
 
-func (lox *TreeWalkInterpreter) Error(line int, pos int, message string) {
-	lox.Report(line, pos, "", message)
+func (lox *TreeWalkInterpreter) ScannerError(err *scanner.Error) {
+	lox.Report(err.Line, err.Pos, "", err.Error())
+}
+
+func (lox *TreeWalkInterpreter) ParserError(err *parser.Error) {
+	if err.Token.Type() == scanner.EOF {
+		lox.Report(err.Token.Line(), err.Token.Position(), " at end", err.Error())
+	} else {
+		lox.Report(err.Token.Line(), err.Token.Position(), " at '", err.Error())
+	}
 }
 
 func (lox *TreeWalkInterpreter) Report(line int, pos int, where string, message string) {
