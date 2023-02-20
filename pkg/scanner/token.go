@@ -114,6 +114,7 @@ type (
 		Lexeme() string
 		Literal() any
 		Line() int
+		Position() int
 		Type() TokenType
 	}
 
@@ -121,16 +122,18 @@ type (
 		lexeme    string
 		tokenType TokenType
 		line      int
+		position  int
 		literal   any
 	}
 )
 
-func NewToken(tType TokenType, lexeme string, literal any, line int) Token {
+func NewToken(tType TokenType, lexeme string, literal any, line int, position int) Token {
 	return &token{
 		tokenType: tType,
 		lexeme:    lexeme,
 		literal:   literal,
 		line:      line,
+		position:  position,
 	}
 }
 
@@ -152,4 +155,8 @@ func (t *token) Literal() any {
 
 func (t *token) Line() int {
 	return t.line
+}
+
+func (t *token) Position() int {
+	return t.position
 }

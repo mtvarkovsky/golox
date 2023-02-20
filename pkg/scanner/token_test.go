@@ -180,7 +180,7 @@ func TestTokenTypeToString(t *testing.T) {
 	}
 }
 
-var testToken = NewToken(Number, "3.14", 3.14, 12)
+var testToken = NewToken(Number, "3.14", 3.14, 12, 13)
 
 func TestToken_String(t *testing.T) {
 	assert.Equal(t, `NUMBER 3.14 3.14`, testToken.String())
@@ -196,4 +196,12 @@ func TestToken_Literal(t *testing.T) {
 
 func TestToken_Type(t *testing.T) {
 	assert.Equal(t, Number, testToken.Type())
+}
+
+func TestToken_Line(t *testing.T) {
+	assert.Equal(t, 12, testToken.Line())
+}
+
+func TestToken_Position(t *testing.T) {
+	assert.Equal(t, 12, testToken.Position())
 }

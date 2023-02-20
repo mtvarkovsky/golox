@@ -114,7 +114,7 @@ func (s *scanner) ScanTokens() ([]Token, []*Error) {
 		}
 	}
 
-	s.appendToken(NewToken(EOF, "", nil, s.currentLine))
+	s.appendToken(NewToken(EOF, "", nil, s.currentLine, s.currentPos))
 
 	return s.tokens, errs
 }
@@ -125,7 +125,7 @@ func (s *scanner) appendToken(t Token) {
 
 func (s *scanner) addToken(tType TokenType, literal any) {
 	text := s.input[s.lexemeStartPos:s.currentPos]
-	s.appendToken(NewToken(tType, text, literal, s.currentLine))
+	s.appendToken(NewToken(tType, text, literal, s.currentLine, s.currentPos))
 }
 
 func (s *scanner) scanToken() *Error {
