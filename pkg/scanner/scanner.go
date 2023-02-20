@@ -21,6 +21,7 @@ type (
 		lexemeStartPos int
 		currentPos     int
 		currentLine    int
+		currentLinePos int
 	}
 
 	Error struct {
@@ -101,6 +102,7 @@ func NewScanner(input string) Scanner {
 		lexemeStartPos: 0,
 		currentPos:     0,
 		currentLine:    1,
+		currentLinePos: 0,
 	}
 }
 
@@ -114,7 +116,7 @@ func (s *scanner) ScanTokens() ([]Token, []*Error) {
 		}
 	}
 
-	s.appendToken(NewToken(EOF, "", nil, s.currentLine, s.currentPos))
+	s.appendToken(NewToken(EOF, "", nil, s.currentLine, s.currentLinePos))
 
 	return s.tokens, errs
 }
@@ -125,7 +127,7 @@ func (s *scanner) appendToken(t Token) {
 
 func (s *scanner) addToken(tType TokenType, literal any) {
 	text := s.input[s.lexemeStartPos:s.currentPos]
-	s.appendToken(NewToken(tType, text, literal, s.currentLine, s.currentPos))
+	s.appendToken(NewToken(tType, text, literal, s.currentLine, s.currentLinePos-len(text)+1))
 }
 
 func (s *scanner) scanToken() *Error {
@@ -163,6 +165,7 @@ func (s *scanner) scanToken() *Error {
 
 	if _, foundNewLine := NewLineCharsSet[c]; foundNewLine {
 		s.currentLine++
+		s.currentLinePos = 0
 		return nil
 	}
 
@@ -182,13 +185,14 @@ func (s *scanner) scanToken() *Error {
 	return &Error{
 		Err:  fmt.Errorf("unexpected character %c", c),
 		Pos:  s.currentPos,
-		Line: s.currentLine,
+		Line: s.currentLinePos,
 	}
 }
 
 func (s *scanner) next() rune {
 	r := rune(s.input[s.currentPos])
 	s.currentPos++
+	s.currentLinePos++
 	return r
 }
 
@@ -212,6 +216,8 @@ func (s *scanner) string() *Error {
 	for s.peek() != '"' && !s.isAtEnd {
 		if s.peek() == '\n' {
 			s.currentLine++
+			s.currentLinePos++
+			s.currentLinePos = 0
 		}
 
 		_ = s.next()
@@ -220,7 +226,7 @@ func (s *scanner) string() *Error {
 	if s.isAtEnd {
 		return &Error{
 			Line: s.currentLine,
-			Pos:  s.currentPos,
+			Pos:  s.currentLinePos,
 			Err:  fmt.Errorf("unterminated string"),
 		}
 	}
@@ -254,7 +260,7 @@ func (s *scanner) number() *Error {
 	if err != nil {
 		return &Error{
 			Line: s.currentLine,
-			Pos:  s.currentPos,
+			Pos:  s.currentLinePos,
 			Err:  fmt.Errorf("unsopported number format"),
 		}
 	}

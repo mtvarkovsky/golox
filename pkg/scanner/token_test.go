@@ -203,5 +203,5 @@ func TestToken_Line(t *testing.T) {
 }
 
 func TestToken_Position(t *testing.T) {
-	assert.Equal(t, 12, testToken.Position())
+	assert.Equal(t, 13, testToken.Position())
 }
