@@ -14,9 +14,8 @@ type (
 	}
 
 	scanner struct {
-		input   string
-		tokens  []Token
-		isAtEnd bool
+		input  string
+		tokens []Token
 
 		lexemeStartPos int
 		currentPos     int
@@ -148,7 +147,7 @@ func (s *scanner) scanToken() *Error {
 			}
 
 			if _, foundComment := CommentCharsSet[twoCharBuffer.String()]; foundComment {
-				for s.peek() != '\n' && !s.isAtEnd {
+				for s.peek() != '\n' && !s.IsAtEnd() {
 					_ = s.next()
 				}
 				return nil
@@ -190,6 +189,9 @@ func (s *scanner) scanToken() *Error {
 }
 
 func (s *scanner) next() rune {
+	if s.IsAtEnd() {
+		return 0
+	}
 	r := rune(s.input[s.currentPos])
 	s.currentPos++
 	s.currentLinePos++
@@ -197,7 +199,7 @@ func (s *scanner) next() rune {
 }
 
 func (s *scanner) peek() rune {
-	if s.isAtEnd {
+	if s.IsAtEnd() {
 		return 0
 	}
 
@@ -205,7 +207,7 @@ func (s *scanner) peek() rune {
 }
 
 func (s *scanner) peekNext() rune {
-	if s.currentPos+1 >= len(s.input) {
+	if s.currentPos+1 >= len(s.input)-1 {
 		return 0
 	}
 
@@ -213,7 +215,7 @@ func (s *scanner) peekNext() rune {
 }
 
 func (s *scanner) string() *Error {
-	for s.peek() != '"' && !s.isAtEnd {
+	for s.peek() != '"' && !s.IsAtEnd() {
 		if s.peek() == '\n' {
 			s.currentLine++
 			s.currentLinePos++
@@ -223,7 +225,7 @@ func (s *scanner) string() *Error {
 		_ = s.next()
 	}
 
-	if s.isAtEnd {
+	if s.IsAtEnd() {
 		return &Error{
 			Line: s.currentLine,
 			Pos:  s.currentLinePos,
@@ -293,7 +295,7 @@ func (s *scanner) identifier() {
 }
 
 func (s *scanner) IsAtEnd() bool {
-	return s.currentPos >= len(s.input)
+	return s.currentPos >= len(s.input)-1
 }
 
 func (e *Error) Error() string {
