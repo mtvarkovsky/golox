@@ -5,10 +5,10 @@ package ast
 import "github.com/mtvarkovsky/golox/pkg/scanner"
 
 type Expression interface {
-	Accept(visitor ExpressionVisitor) any
+	Accept(visitor ExpressionVisitor) (any, error)
 }
 
-type ExpressionVisitor = func(Expression) any
+type ExpressionVisitor = func(Expression) (any, error)
 
 type Binary interface {
 	Expression
@@ -33,7 +33,7 @@ func NewBinary(left Expression, operator scanner.Token, right Expression) Binary
 	}
 }
 
-func (e *binary) Accept(visitor ExpressionVisitor) any {
+func (e *binary) Accept(visitor ExpressionVisitor) (any, error) {
 	return visitor(e)
 }
 func (e *binary) Left() Expression {
@@ -69,7 +69,7 @@ func NewUnary(operator scanner.Token, right Expression) Unary {
 	}
 }
 
-func (e *unary) Accept(visitor ExpressionVisitor) any {
+func (e *unary) Accept(visitor ExpressionVisitor) (any, error) {
 	return visitor(e)
 }
 func (e *unary) Operator() scanner.Token {
@@ -98,7 +98,7 @@ func NewLiteral(value any) Literal {
 	}
 }
 
-func (e *literal) Accept(visitor ExpressionVisitor) any {
+func (e *literal) Accept(visitor ExpressionVisitor) (any, error) {
 	return visitor(e)
 }
 func (e *literal) Value() any {
@@ -123,7 +123,7 @@ func NewGrouping(expression Expression) Grouping {
 	}
 }
 
-func (e *grouping) Accept(visitor ExpressionVisitor) any {
+func (e *grouping) Accept(visitor ExpressionVisitor) (any, error) {
 	return visitor(e)
 }
 func (e *grouping) Expression() Expression {

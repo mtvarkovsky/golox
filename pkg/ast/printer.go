@@ -5,22 +5,22 @@ import (
 	"strings"
 )
 
-func PrinterVisitor(expression Expression) string {
+func PrinterVisitor(expression Expression) (string, error) {
 	switch e := expression.(type) {
 	case Binary:
-		return parenthesize(e.Operator().Lexeme(), e.Left(), e.Right())
+		return parenthesize(e.Operator().Lexeme(), e.Left(), e.Right()), nil
 	case Unary:
-		return parenthesize(e.Operator().Lexeme(), e.Right())
+		return parenthesize(e.Operator().Lexeme(), e.Right()), nil
 	case Grouping:
-		return parenthesize("group", e.Expression())
+		return parenthesize("group", e.Expression()), nil
 	case Literal:
 		if e.Value() == nil {
-			return "nil"
+			return "nil", nil
 		}
-		return fmt.Sprint(e.Value())
+		return fmt.Sprint(e.Value()), nil
 	}
 
-	return ""
+	return "", nil
 }
 
 func parenthesize(name string, expressions ...Expression) string {
@@ -29,7 +29,8 @@ func parenthesize(name string, expressions ...Expression) string {
 	builder.WriteString(name)
 	for _, expression := range expressions {
 		builder.WriteString(" ")
-		builder.WriteString(PrinterVisitor(expression))
+		s, _ := PrinterVisitor(expression)
+		builder.WriteString(s)
 	}
 	builder.WriteString(")")
 

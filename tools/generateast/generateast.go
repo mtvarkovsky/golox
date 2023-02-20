@@ -76,11 +76,11 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 	// define expression interface
 	g.builder.WriteString("type ")
 	g.builder.WriteString(fmt.Sprintf("%s interface {\n", baseName))
-	g.builder.WriteString(fmt.Sprintf("\tAccept(visitor %sVisitor) any\n", baseName))
+	g.builder.WriteString(fmt.Sprintf("\tAccept(visitor %sVisitor) (any, error)\n", baseName))
 	g.builder.WriteString("}\n\n")
 
 	// define expression visitor signature
-	g.builder.WriteString(fmt.Sprintf("type %sVisitor = func(%s) any\n", baseName, baseName))
+	g.builder.WriteString(fmt.Sprintf("type %sVisitor = func(%s) (any, error)\n", baseName, baseName))
 
 	// go through all rules
 	for _, rule := range rules {
@@ -160,7 +160,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		g.builder.WriteString(strings.ToLower(name))
 		g.builder.WriteString("")
 		g.builder.WriteString(") ")
-		g.builder.WriteString(fmt.Sprintf("Accept(visitor %sVisitor) any {\n", baseName))
+		g.builder.WriteString(fmt.Sprintf("Accept(visitor %sVisitor) (any, error) {\n", baseName))
 		g.builder.WriteString("\treturn visitor(e)")
 		g.builder.WriteString("\n}\n")
 

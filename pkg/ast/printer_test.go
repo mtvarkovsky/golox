@@ -17,6 +17,6 @@ func TestPrinter(t *testing.T) {
 			NewLiteral(45.67),
 		),
 	)
-	res := PrinterVisitor(expression)
+	res, _ := PrinterVisitor(expression)
 	assert.Equal(t, "(* (- 123) (group 45.67))", res)
 }

@@ -14,7 +14,7 @@ func TestParser(t *testing.T) {
 	assert.Empty(t, errs)
 	prsr := NewParser(tokens)
 	expression, err := prsr.Parse()
-	stringRepr := ast.PrinterVisitor(expression)
+	stringRepr, _ := ast.PrinterVisitor(expression)
 	assert.Nil(t, err)
 	assert.NotNil(t, expression)
 	assert.Equal(t, "(== (- (group (* 5 (group (+ 2 3)))) 25) )", stringRepr)
