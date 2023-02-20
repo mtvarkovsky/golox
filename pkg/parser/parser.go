@@ -161,10 +161,14 @@ func (p *parser) primary() (ast.Expression, *Error) {
 		return ast.NewGrouping(expression), nil
 	}
 
-	return nil, &Error{
-		Token: p.peek(),
-		err:   fmt.Errorf("expect exception"),
+	if !p.isAtEnd() {
+		return nil, &Error{
+			Token: p.peek(),
+			err:   fmt.Errorf("expect exception"),
+		}
 	}
+
+	return nil, nil
 }
 
 func (p *parser) match(tokenTypes ...scanner.TokenType) bool {
