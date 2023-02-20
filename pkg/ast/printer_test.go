@@ -9,10 +9,10 @@ import (
 func TestPrinter(t *testing.T) {
 	expression := NewBinary(
 		NewUnary(
-			scanner.NewToken(scanner.Minus, "-", nil, 1),
+			scanner.NewToken(scanner.Minus, "-", nil, 1, 1),
 			NewLiteral(123),
 		),
-		scanner.NewToken(scanner.Star, "*", nil, 1),
+		scanner.NewToken(scanner.Star, "*", nil, 1, 1),
 		NewGrouping(
 			NewLiteral(45.67),
 		),
