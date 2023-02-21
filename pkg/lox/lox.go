@@ -18,7 +18,8 @@ type (
 	}
 
 	TreeWalkInterpreter struct {
-		hadError bool
+		hadError        bool
+		hadRuntimeError bool
 	}
 )
 
@@ -33,6 +34,9 @@ func (lox *TreeWalkInterpreter) RunFile(path string) {
 	if lox.hadError {
 		os.Exit(65)
 	}
+	if lox.hadRuntimeError {
+		os.Exit(70)
+	}
 }
 
 func (lox *TreeWalkInterpreter) RunPrompt() {
@@ -45,6 +49,7 @@ func (lox *TreeWalkInterpreter) RunPrompt() {
 		}
 		lox.Run(line)
 		lox.hadError = false
+		lox.hadRuntimeError = false
 	}
 }
 
@@ -87,26 +92,30 @@ func (lox *TreeWalkInterpreter) StringifyResult(res any) string {
 
 func (lox *TreeWalkInterpreter) ScannerError(err *scanner.Error) {
 	lox.Report(err.Line, err.Pos, "", err.Error())
+	lox.hadError = true
 }
 
 func (lox *TreeWalkInterpreter) ParserError(err *parser.Error) {
 	if err.Token.Type() == scanner.EOF {
 		lox.Report(err.Token.Line(), err.Token.Position(), " at end", err.Error())
 	} else {
-		lox.Report(err.Token.Line(), err.Token.Position(), " at", err.Error())
+		lox.Report(err.Token.Line(), err.Token.Position(), fmt.Sprintf(" at line %d", err.Token.Line()), err.Error())
 	}
+	lox.hadError = true
 }
 
 func (lox *TreeWalkInterpreter) RuntimeError(err error) {
 	e, ok := err.(*ast.RuntimeError)
 	if ok {
 		if e.Token != nil {
-			lox.Report(e.Token.Line(), e.Token.Position(), "", err.Error())
+			lox.Report(e.Token.Line(), e.Token.Position(), fmt.Sprintf(" at line %d", e.Token.Line()), err.Error())
 		}
 		lox.Report(-1, -1, "", err.Error())
 	} else {
 		lox.Report(-1, -1, "", "unknown error")
 	}
+	lox.hadError = true
+	lox.hadRuntimeError = true
 }
 
 func (lox *TreeWalkInterpreter) Report(line int, pos int, where string, message string) {
@@ -114,5 +123,4 @@ func (lox *TreeWalkInterpreter) Report(line int, pos int, where string, message 
 		os.Stderr,
 		fmt.Sprintf("[Line %d][%d] Error %s: %s", line, pos, where, message),
 	)
-	lox.hadError = true
 }
