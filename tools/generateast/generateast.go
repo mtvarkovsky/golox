@@ -8,6 +8,23 @@ import (
 	"strings"
 )
 
+// Lox grammar:
+// -----------------------------------------------------------------
+//
+// expression     -> literal
+//                 | unary
+//                 | binary
+//                 | grouping ;
+//
+// literal        -> number | string | "true" | "false" | "nil" ;
+// grouping       -> "(" expression ")" ;
+// unary          -> ( "-" | "!" ) expression ;
+// binary         -> expression operator expression ;
+// operator       -> "==" | "!=" | "<" | "<=" | ">" | ">="
+//                 | "+"  | "-"  | "*" | "/" ;
+//
+// -----------------------------------------------------------------
+
 type (
 	generator struct {
 		builder     strings.Builder
@@ -18,8 +35,8 @@ type (
 
 var (
 	expressionRules = []string{
-		"Binary   : left Expression, operator scanner.Token, right Expression",
-		"Unary    : operator scanner.Token, right Expression",
+		"Binary   : left Expression, operator tokens.Token, right Expression",
+		"Unary    : operator tokens.Token, right Expression",
 		"Literal  : value any",
 		"Grouping : expression Expression",
 	}
@@ -27,13 +44,19 @@ var (
 
 func main() {
 	if len(os.Args) != 3 {
-		_, _ = fmt.Fprintln(os.Stderr, "usage: generatelatest {package name} {destination file name}")
+		_, _ = fmt.Fprintln(os.Stderr, "usage: generateast {package name} {destination folder} {file name}")
 		os.Exit(65)
 		return
 	}
 	pkg := os.Args[1]
 	destination := os.Args[2]
 	f, err := os.Create(destination)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(65)
+		return
+	}
+	defer f.Close()
 
 	gen := newGenerator(pkg, destination)
 	if err = gen.defineAST("Expression", expressionRules); err != nil {
@@ -68,9 +91,9 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 	g.builder.WriteString(g.pkg)
 	g.builder.WriteString("\n\n")
 
-	// import scanner
+	// import tokens
 	g.builder.WriteString("import \"")
-	g.builder.WriteString("github.com/mtvarkovsky/golox/pkg/scanner")
+	g.builder.WriteString("github.com/mtvarkovsky/golox/pkg/tokens")
 	g.builder.WriteString("\"\n\n")
 
 	// define expression interface

@@ -3,9 +3,10 @@ package lox
 import (
 	"bufio"
 	"fmt"
-	"github.com/mtvarkovsky/golox/pkg/ast"
+	"github.com/mtvarkovsky/golox/pkg/interpreter"
 	"github.com/mtvarkovsky/golox/pkg/parser"
 	"github.com/mtvarkovsky/golox/pkg/scanner"
+	"github.com/mtvarkovsky/golox/pkg/tokens"
 	"math"
 	"os"
 )
@@ -68,7 +69,7 @@ func (lox *TreeWalkInterpreter) Run(source string) {
 		return
 	}
 
-	res, runtimeErr := ast.InterpreterVisitor(expression)
+	res, runtimeErr := interpreter.Visitor(expression)
 	if runtimeErr != nil {
 		lox.RuntimeError(runtimeErr)
 	} else {
@@ -96,7 +97,7 @@ func (lox *TreeWalkInterpreter) ScannerError(err *scanner.Error) {
 }
 
 func (lox *TreeWalkInterpreter) ParserError(err *parser.Error) {
-	if err.Token.Type() == scanner.EOF {
+	if err.Token.Type() == tokens.EOF {
 		lox.Report(err.Token.Line(), err.Token.Position(), " at end", err.Error())
 	} else {
 		lox.Report(err.Token.Line(), err.Token.Position(), fmt.Sprintf(" at line %d", err.Token.Line()), err.Error())
@@ -105,7 +106,7 @@ func (lox *TreeWalkInterpreter) ParserError(err *parser.Error) {
 }
 
 func (lox *TreeWalkInterpreter) RuntimeError(err error) {
-	e, ok := err.(*ast.RuntimeError)
+	e, ok := err.(*interpreter.RuntimeError)
 	if ok {
 		if e.Token != nil {
 			lox.Report(e.Token.Line(), e.Token.Position(), fmt.Sprintf(" at line %d", e.Token.Line()), err.Error())

@@ -1,7 +1,7 @@
 package ast
 
 import (
-	"github.com/mtvarkovsky/golox/pkg/scanner"
+	"github.com/mtvarkovsky/golox/pkg/tokens"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,10 +9,10 @@ import (
 func TestPrinter(t *testing.T) {
 	expression := NewBinary(
 		NewUnary(
-			scanner.NewToken(scanner.Minus, "-", nil, 1, 1),
+			tokens.NewToken(tokens.Minus, "-", nil, 1, 1),
 			NewLiteral(123),
 		),
-		scanner.NewToken(scanner.Star, "*", nil, 1, 1),
+		tokens.NewToken(tokens.Star, "*", nil, 1, 1),
 		NewGrouping(
 			NewLiteral(45.67),
 		),

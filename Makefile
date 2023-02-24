@@ -19,10 +19,11 @@ build: ## builds the executable and places it to ./build/
 
 .PHONY: generate
 generate: ## runs go generate ./...
+	go run ./tools/generateast/ ast ./pkg/ast/ast.gen.go
 	go generate ./...
 
 .PHONY: test
-test: ## runs tests
+test: generate build ## runs tests
 	go test ./...
 
 .PHONY: golox

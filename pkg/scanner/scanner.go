@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"fmt"
+	"github.com/mtvarkovsky/golox/pkg/tokens"
 	"strconv"
 	"strings"
 	"unicode"
@@ -9,13 +10,13 @@ import (
 
 type (
 	Scanner interface {
-		ScanTokens() ([]Token, []*Error)
+		ScanTokens() ([]tokens.Token, []*Error)
 		IsAtEnd() bool
 	}
 
 	scanner struct {
 		input  string
-		tokens []Token
+		tokens []tokens.Token
 
 		lexemeStartPos int
 		currentPos     int
@@ -31,52 +32,52 @@ type (
 )
 
 var (
-	Keywords = map[string]TokenType{
-		"and":    And,
-		"class":  Class,
-		"else":   Else,
-		"false":  False,
-		"for":    For,
-		"fun":    Fun,
-		"if":     If,
-		"nil":    Nil,
-		"or":     Or,
-		"print":  Print,
-		"return": Return,
-		"super":  Super,
-		"this":   This,
-		"true":   True,
-		"var":    Var,
-		"while":  While,
+	Keywords = map[string]tokens.TokenType{
+		"and":    tokens.And,
+		"class":  tokens.Class,
+		"else":   tokens.Else,
+		"false":  tokens.False,
+		"for":    tokens.For,
+		"fun":    tokens.Fun,
+		"if":     tokens.If,
+		"nil":    tokens.Nil,
+		"or":     tokens.Or,
+		"print":  tokens.Print,
+		"return": tokens.Return,
+		"super":  tokens.Super,
+		"this":   tokens.This,
+		"true":   tokens.True,
+		"var":    tokens.Var,
+		"while":  tokens.While,
 	}
 
-	SingleCharLexemeToToken = map[rune]TokenType{
-		'(': LeftParen,
-		')': RightParen,
-		'{': LeftBrace,
-		'}': RightBrace,
-		',': Comma,
-		'.': Dot,
-		'-': Minus,
-		'+': Plus,
-		';': Semicolon,
-		'*': Star,
-		'!': Bang,
-		'=': Equal,
-		'<': Less,
-		'>': Greater,
-		'/': Slash,
+	SingleCharLexemeToToken = map[rune]tokens.TokenType{
+		'(': tokens.LeftParen,
+		')': tokens.RightParen,
+		'{': tokens.LeftBrace,
+		'}': tokens.RightBrace,
+		',': tokens.Comma,
+		'.': tokens.Dot,
+		'-': tokens.Minus,
+		'+': tokens.Plus,
+		';': tokens.Semicolon,
+		'*': tokens.Star,
+		'!': tokens.Bang,
+		'=': tokens.Equal,
+		'<': tokens.Less,
+		'>': tokens.Greater,
+		'/': tokens.Slash,
 	}
 
-	TwoCharLexemeToToken = map[string]TokenType{
-		"!=": BangEqual,
-		"==": EqualEqual,
-		"<=": LessEqual,
-		">=": GreaterEqual,
+	TwoCharLexemeToToken = map[string]tokens.TokenType{
+		"!=": tokens.BangEqual,
+		"==": tokens.EqualEqual,
+		"<=": tokens.LessEqual,
+		">=": tokens.GreaterEqual,
 	}
 
-	StringCharLexemeToToken = map[rune]TokenType{
-		'"': String,
+	StringCharLexemeToToken = map[rune]tokens.TokenType{
+		'"': tokens.String,
 	}
 
 	IgnoredCharsSet = map[rune]bool{
@@ -105,7 +106,7 @@ func NewScanner(input string) Scanner {
 	}
 }
 
-func (s *scanner) ScanTokens() ([]Token, []*Error) {
+func (s *scanner) ScanTokens() ([]tokens.Token, []*Error) {
 	var errs []*Error
 
 	for !s.IsAtEnd() {
@@ -115,18 +116,18 @@ func (s *scanner) ScanTokens() ([]Token, []*Error) {
 		}
 	}
 
-	s.appendToken(NewToken(EOF, "", nil, s.currentLine, s.currentLinePos))
+	s.appendToken(tokens.NewToken(tokens.EOF, "", nil, s.currentLine, s.currentLinePos))
 
 	return s.tokens, errs
 }
 
-func (s *scanner) appendToken(t Token) {
+func (s *scanner) appendToken(t tokens.Token) {
 	s.tokens = append(s.tokens, t)
 }
 
-func (s *scanner) addToken(tType TokenType, literal any) {
+func (s *scanner) addToken(tType tokens.TokenType, literal any) {
 	text := s.input[s.lexemeStartPos:s.currentPos]
-	s.appendToken(NewToken(tType, text, literal, s.currentLine, s.currentLinePos-len(text)+1))
+	s.appendToken(tokens.NewToken(tType, text, literal, s.currentLine, s.currentLinePos-len(text)+1))
 }
 
 func (s *scanner) scanToken() *Error {
@@ -236,7 +237,7 @@ func (s *scanner) string() *Error {
 	_ = s.next()
 
 	val := s.input[s.lexemeStartPos+1 : s.currentPos-1]
-	s.addToken(String, val)
+	s.addToken(tokens.String, val)
 
 	return nil
 }
@@ -266,7 +267,7 @@ func (s *scanner) number() *Error {
 			Err:  fmt.Errorf("unsopported number format"),
 		}
 	}
-	s.addToken(Number, val)
+	s.addToken(tokens.Number, val)
 
 	return nil
 }
@@ -288,7 +289,7 @@ func (s *scanner) identifier() {
 
 	tokenType, found := Keywords[val]
 	if !found {
-		tokenType = Identifier
+		tokenType = tokens.Identifier
 	}
 
 	s.addToken(tokenType, nil)

@@ -1,50 +1,50 @@
-//go:generate go run ../../tools/generateast/ ast ast.gen.go
-package ast
+package interpreter
 
 import (
 	"fmt"
-	"github.com/mtvarkovsky/golox/pkg/scanner"
+	"github.com/mtvarkovsky/golox/pkg/ast"
+	"github.com/mtvarkovsky/golox/pkg/tokens"
 )
 
 type (
 	RuntimeError struct {
 		err   error
-		Token scanner.Token
+		Token tokens.Token
 	}
 )
 
-func InterpreterVisitor(expression Expression) (any, error) {
+func Visitor(expression ast.Expression) (any, error) {
 	switch e := expression.(type) {
-	case Binary:
+	case ast.Binary:
 		return visitBinaryExpression(e)
-	case Unary:
+	case ast.Unary:
 		return visitUnaryExpression(e)
-	case Grouping:
+	case ast.Grouping:
 		return visitGrouping(e)
-	case Literal:
+	case ast.Literal:
 		return visitLiteral(e)
 	}
 
 	return nil, &RuntimeError{err: fmt.Errorf("unknow expression type")}
 }
 
-func visitLiteral(expression Literal) (any, error) {
+func visitLiteral(expression ast.Literal) (any, error) {
 	return expression.Value(), nil
 }
 
-func visitGrouping(expression Grouping) (any, error) {
+func visitGrouping(expression ast.Grouping) (any, error) {
 	return evaluate(expression.Expression())
 }
 
-func evaluate(expression Expression) (any, error) {
-	v, err := expression.Accept(InterpreterVisitor)
+func evaluate(expression ast.Expression) (any, error) {
+	v, err := expression.Accept(Visitor)
 	if err != nil {
 		return nil, &RuntimeError{err: err}
 	}
 	return v, nil
 }
 
-func visitUnaryExpression(expression Unary) (v any, err error) {
+func visitUnaryExpression(expression ast.Unary) (v any, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			v = nil
@@ -58,10 +58,10 @@ func visitUnaryExpression(expression Unary) (v any, err error) {
 	}
 
 	switch expression.Operator().Type() {
-	case scanner.Bang:
+	case tokens.Bang:
 		v, err = toBoolean(right)
 		return v, err
-	case scanner.Minus:
+	case tokens.Minus:
 		e := checkNumberOperands(expression.Operator(), right)
 		if e != nil {
 			return nil, e
@@ -85,7 +85,7 @@ func toBoolean(o any) (v bool, err error) {
 	return true, nil
 }
 
-func visitBinaryExpression(expression Binary) (v any, err error) {
+func visitBinaryExpression(expression ast.Binary) (v any, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			v = nil
@@ -103,49 +103,49 @@ func visitBinaryExpression(expression Binary) (v any, err error) {
 	}
 
 	switch expression.Operator().Type() {
-	case scanner.Greater:
+	case tokens.Greater:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) > right.(float64), nil
-	case scanner.GreaterEqual:
+	case tokens.GreaterEqual:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) >= right.(float64), nil
-	case scanner.Less:
+	case tokens.Less:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) < right.(float64), nil
-	case scanner.LessEqual:
+	case tokens.LessEqual:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) <= right.(float64), nil
-	case scanner.Minus:
+	case tokens.Minus:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) - right.(float64), nil
-	case scanner.Slash:
+	case tokens.Slash:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) / right.(float64), nil
-	case scanner.Star:
+	case tokens.Star:
 		e := checkNumberOperands(expression.Operator(), left, right)
 		if e != nil {
 			return nil, e
 		}
 		return left.(float64) * right.(float64), nil
-	case scanner.Plus:
+	case tokens.Plus:
 		if _, lIsNumber := left.(float64); lIsNumber {
 			if _, rIsNumber := right.(float64); rIsNumber {
 				return left.(float64) + right.(float64), nil
@@ -157,9 +157,9 @@ func visitBinaryExpression(expression Binary) (v any, err error) {
 			}
 		}
 		return nil, &RuntimeError{err: fmt.Errorf("operands must be both numbers or both strings"), Token: expression.Operator()}
-	case scanner.Equal:
+	case tokens.EqualEqual:
 		return isEqual(left, right)
-	case scanner.BangEqual:
+	case tokens.BangEqual:
 		val, e := isEqual(left, right)
 		return !val, e
 	}
@@ -177,7 +177,7 @@ func isEqual(left any, right any) (bool, error) {
 	return fmt.Sprint(left) == fmt.Sprint(right), nil
 }
 
-func checkNumberOperands(operator scanner.Token, operands ...any) error {
+func checkNumberOperands(operator tokens.Token, operands ...any) error {
 	for _, operand := range operands {
 		if _, ok := operand.(float64); !ok {
 			return &RuntimeError{err: fmt.Errorf("operand must be a number"), Token: operator}

@@ -3,8 +3,24 @@ package parser
 import (
 	"fmt"
 	"github.com/mtvarkovsky/golox/pkg/ast"
-	"github.com/mtvarkovsky/golox/pkg/scanner"
+	"github.com/mtvarkovsky/golox/pkg/tokens"
 )
+
+// Lox expression grammar with precedence:
+// -----------------------------------------------------------------
+//
+// expression     -> equality ;
+// equality       -> comparison ( ( "!=" | "==") comparison  )* ;
+// comparison     -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+// term           -> factor ( ( "-" | "+" ) factor )* ;
+// factor         -> unary ( ( "/" | "*" ) unary )* ;
+// unary          -> ( "!" | "-" ) unary )
+//                 | primary ;
+//
+// primary        -> number | string | "true" | "false" | "nil"
+//                 | "(" expression ")" ;
+//
+// -----------------------------------------------------------------
 
 type (
 	Parser interface {
@@ -12,28 +28,30 @@ type (
 	}
 
 	parser struct {
-		input      []scanner.Token
+		input      []tokens.Token
 		currentPos int
 	}
 
 	Error struct {
-		Token scanner.Token
+		Token tokens.Token
 		err   error
 	}
 )
 
-var StopSyncTokensSet = map[scanner.TokenType]bool{
-	scanner.Class:  true,
-	scanner.Fun:    true,
-	scanner.Var:    true,
-	scanner.For:    true,
-	scanner.If:     true,
-	scanner.While:  true,
-	scanner.Print:  true,
-	scanner.Return: true,
-}
+var (
+	StopSyncTokensSet = map[tokens.TokenType]bool{
+		tokens.Class:  true,
+		tokens.Fun:    true,
+		tokens.Var:    true,
+		tokens.For:    true,
+		tokens.If:     true,
+		tokens.While:  true,
+		tokens.Print:  true,
+		tokens.Return: true,
+	}
+)
 
-func NewParser(input []scanner.Token) Parser {
+func NewParser(input []tokens.Token) Parser {
 	return &parser{
 		input:      input,
 		currentPos: 0,
@@ -58,7 +76,7 @@ func (p *parser) equality() (ast.Expression, *Error) {
 		return nil, err
 	}
 
-	for p.match(scanner.EqualEqual, scanner.BangEqual) {
+	for p.match(tokens.EqualEqual, tokens.BangEqual) {
 		operator := p.previous()
 		right, e := p.comparison()
 		if e != nil {
@@ -76,7 +94,7 @@ func (p *parser) comparison() (ast.Expression, *Error) {
 		return nil, err
 	}
 
-	for p.match(scanner.Greater, scanner.GreaterEqual, scanner.Less, scanner.LessEqual) {
+	for p.match(tokens.Greater, tokens.GreaterEqual, tokens.Less, tokens.LessEqual) {
 		operator := p.previous()
 		right, e := p.term()
 		if e != nil {
@@ -94,7 +112,7 @@ func (p *parser) term() (ast.Expression, *Error) {
 		return nil, err
 	}
 
-	for p.match(scanner.Minus, scanner.Plus) {
+	for p.match(tokens.Minus, tokens.Plus) {
 		operator := p.previous()
 		right, e := p.factor()
 		if e != nil {
@@ -112,7 +130,7 @@ func (p *parser) factor() (ast.Expression, *Error) {
 		return nil, err
 	}
 
-	for p.match(scanner.Star, scanner.Slash) {
+	for p.match(tokens.Star, tokens.Slash) {
 		operator := p.previous()
 		right, e := p.unary()
 		if e != nil {
@@ -125,7 +143,7 @@ func (p *parser) factor() (ast.Expression, *Error) {
 }
 
 func (p *parser) unary() (ast.Expression, *Error) {
-	if p.match(scanner.Bang, scanner.Minus) {
+	if p.match(tokens.Bang, tokens.Minus) {
 		operator := p.previous()
 		right, err := p.unary()
 		if err != nil {
@@ -138,24 +156,24 @@ func (p *parser) unary() (ast.Expression, *Error) {
 }
 
 func (p *parser) primary() (ast.Expression, *Error) {
-	if p.match(scanner.False) {
+	if p.match(tokens.False) {
 		return ast.NewLiteral(false), nil
 	}
-	if p.match(scanner.True) {
+	if p.match(tokens.True) {
 		return ast.NewLiteral(true), nil
 	}
-	if p.match(scanner.Nil) {
+	if p.match(tokens.Nil) {
 		return ast.NewLiteral(nil), nil
 	}
-	if p.match(scanner.Number, scanner.String) {
+	if p.match(tokens.Number, tokens.String) {
 		return ast.NewLiteral(p.previous().Literal()), nil
 	}
-	if p.match(scanner.LeftParen) {
+	if p.match(tokens.LeftParen) {
 		expression, err := p.expression()
 		if err != nil {
 			return nil, err
 		}
-		if _, e := p.consume(scanner.RightParen, "Expect ')' after expression."); e != nil {
+		if _, e := p.consume(tokens.RightParen, "Expect ')' after expression."); e != nil {
 			return nil, e
 		}
 		return ast.NewGrouping(expression), nil
@@ -171,7 +189,7 @@ func (p *parser) primary() (ast.Expression, *Error) {
 	return nil, nil
 }
 
-func (p *parser) match(tokenTypes ...scanner.TokenType) bool {
+func (p *parser) match(tokenTypes ...tokens.TokenType) bool {
 	for _, tt := range tokenTypes {
 		if p.check(tt) {
 			_ = p.advance()
@@ -181,7 +199,7 @@ func (p *parser) match(tokenTypes ...scanner.TokenType) bool {
 	return false
 }
 
-func (p *parser) consume(tokenType scanner.TokenType, message string) (scanner.Token, *Error) {
+func (p *parser) consume(tokenType tokens.TokenType, message string) (tokens.Token, *Error) {
 	if p.check(tokenType) {
 		return p.advance(), nil
 	}
@@ -196,7 +214,7 @@ func (p *parser) synchronize() {
 	_ = p.advance()
 
 	for !p.isAtEnd() {
-		if p.previous().Type() == scanner.Semicolon {
+		if p.previous().Type() == tokens.Semicolon {
 			return
 		}
 
@@ -208,7 +226,7 @@ func (p *parser) synchronize() {
 	_ = p.advance()
 }
 
-func (p *parser) check(tokenType scanner.TokenType) bool {
+func (p *parser) check(tokenType tokens.TokenType) bool {
 	if p.isAtEnd() {
 		return false
 	}
@@ -216,14 +234,14 @@ func (p *parser) check(tokenType scanner.TokenType) bool {
 }
 
 func (p *parser) isAtEnd() bool {
-	return p.peek().Type() == scanner.EOF
+	return p.peek().Type() == tokens.EOF
 }
 
-func (p *parser) peek() scanner.Token {
+func (p *parser) peek() tokens.Token {
 	return p.input[p.currentPos]
 }
 
-func (p *parser) advance() scanner.Token {
+func (p *parser) advance() tokens.Token {
 	if !p.isAtEnd() {
 		p.currentPos++
 	}
@@ -231,7 +249,7 @@ func (p *parser) advance() scanner.Token {
 	return p.previous()
 }
 
-func (p *parser) previous() scanner.Token {
+func (p *parser) previous() tokens.Token {
 	return p.input[p.currentPos-1]
 }
 

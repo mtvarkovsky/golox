@@ -2,7 +2,7 @@
 
 package ast
 
-import "github.com/mtvarkovsky/golox/pkg/scanner"
+import "github.com/mtvarkovsky/golox/pkg/tokens"
 
 type Expression interface {
 	Accept(visitor ExpressionVisitor) (any, error)
@@ -13,19 +13,19 @@ type ExpressionVisitor = func(Expression) (any, error)
 type Binary interface {
 	Expression
 	Left() Expression
-	Operator() scanner.Token
+	Operator() tokens.Token
 	Right() Expression
 }
 
 type binary struct {
 	left Expression
-	operator scanner.Token
+	operator tokens.Token
 	right Expression
 }
 
 var _ Binary = (*binary)(nil)
 
-func NewBinary(left Expression, operator scanner.Token, right Expression) Binary {
+func NewBinary(left Expression, operator tokens.Token, right Expression) Binary {
 	return &binary{
 		left: left,
 		operator: operator,
@@ -40,7 +40,7 @@ func (e *binary) Left() Expression {
 	return e.left
 }
 
-func (e *binary) Operator() scanner.Token {
+func (e *binary) Operator() tokens.Token {
 	return e.operator
 }
 
@@ -51,18 +51,18 @@ func (e *binary) Right() Expression {
 
 type Unary interface {
 	Expression
-	Operator() scanner.Token
+	Operator() tokens.Token
 	Right() Expression
 }
 
 type unary struct {
-	operator scanner.Token
+	operator tokens.Token
 	right Expression
 }
 
 var _ Unary = (*unary)(nil)
 
-func NewUnary(operator scanner.Token, right Expression) Unary {
+func NewUnary(operator tokens.Token, right Expression) Unary {
 	return &unary{
 		operator: operator,
 		right: right,
@@ -72,7 +72,7 @@ func NewUnary(operator scanner.Token, right Expression) Unary {
 func (e *unary) Accept(visitor ExpressionVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *unary) Operator() scanner.Token {
+func (e *unary) Operator() tokens.Token {
 	return e.operator
 }
 
