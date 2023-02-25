@@ -24,7 +24,7 @@ import (
 
 type (
 	Parser interface {
-		Parse() (ast.Expression, *Error)
+		Parse() ([]ast.Statement, []*Error)
 	}
 
 	parser struct {
@@ -58,16 +58,150 @@ func NewParser(input []tokens.Token) Parser {
 	}
 }
 
-func (p *parser) Parse() (ast.Expression, *Error) {
+func (p *parser) Parse() ([]ast.Statement, []*Error) {
+	var statements []ast.Statement
+	var errs []*Error
+	for !p.isAtEnd() {
+		statement, err := p.declaration()
+		statements = append(statements, statement)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return statements, errs
+	//expression, err := p.expression()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return expression, nil
+}
+
+func (p *parser) declaration() (ast.Statement, *Error) {
+	var statement ast.Statement
+	var err *Error
+	if p.match(tokens.Var) {
+		statement, err = p.varDeclaration()
+		if err != nil {
+			p.synchronize()
+			return nil, err
+		}
+		return statement, err
+	}
+	statement, err = p.statement()
+	if err != nil {
+		p.synchronize()
+		return nil, err
+	}
+	return statement, nil
+}
+
+func (p *parser) varDeclaration() (ast.Statement, *Error) {
+	name, err := p.consume(tokens.Identifier, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer ast.Expression
+	if p.match(tokens.Equal) {
+		initializer, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(tokens.Semicolon, "Expect ';' after variable declaration.")
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewVarStatement(name, initializer), nil
+}
+
+func (p *parser) statement() (ast.Statement, *Error) {
+	if p.match(tokens.Print) {
+		return p.printStatement()
+	}
+	if p.match(tokens.LeftBrace) {
+		block, err := p.blockStatement()
+		if err != nil {
+			return nil, err
+		}
+		return ast.NewBlockStatement(block), nil
+	}
+
+	return p.expressionStatement()
+}
+
+func (p *parser) blockStatement() ([]ast.Statement, *Error) {
+	var statements []ast.Statement
+	for !p.check(tokens.RightBrace) && !p.isAtEnd() {
+		statement, err := p.declaration()
+		if err != nil {
+			return nil, err
+		}
+		statements = append(statements, statement)
+	}
+
+	_, err := p.consume(tokens.RightBrace, "Expect '}' after block.")
+	if err != nil {
+		return nil, err
+	}
+	return statements, nil
+}
+
+func (p *parser) printStatement() (ast.Statement, *Error) {
+	val, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(tokens.Semicolon, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewPrintStatement(val), nil
+}
+
+func (p *parser) expressionStatement() (ast.Statement, *Error) {
 	expression, err := p.expression()
 	if err != nil {
 		return nil, err
 	}
-	return expression, nil
+	_, err = p.consume(tokens.Semicolon, "Expect ';' after expression.")
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewExpressionStatement(expression), nil
 }
 
 func (p *parser) expression() (ast.Expression, *Error) {
-	return p.equality()
+	return p.assignment()
+}
+
+func (p *parser) assignment() (ast.Expression, *Error) {
+	expression, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(tokens.Equal) {
+		equals := p.previous()
+		value, e := p.assignment()
+		if e != nil {
+			return nil, e
+		}
+
+		switch expr := expression.(type) {
+		case ast.Variable:
+			name := expr.Name()
+			return ast.NewAssignment(name, value), nil
+		}
+
+		return nil, &Error{
+			Token: equals,
+			err:   fmt.Errorf("invalid assignment target"),
+		}
+	}
+
+	return expression, nil
 }
 
 func (p *parser) equality() (ast.Expression, *Error) {
@@ -167,6 +301,9 @@ func (p *parser) primary() (ast.Expression, *Error) {
 	}
 	if p.match(tokens.Number, tokens.String) {
 		return ast.NewLiteral(p.previous().Literal()), nil
+	}
+	if p.match(tokens.Identifier) {
+		return ast.NewVariable(p.previous()), nil
 	}
 	if p.match(tokens.LeftParen) {
 		expression, err := p.expression()

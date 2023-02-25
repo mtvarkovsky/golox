@@ -7,7 +7,6 @@ import (
 	"github.com/mtvarkovsky/golox/pkg/parser"
 	"github.com/mtvarkovsky/golox/pkg/scanner"
 	"github.com/mtvarkovsky/golox/pkg/tokens"
-	"math"
 	"os"
 )
 
@@ -63,32 +62,22 @@ func (lox *TreeWalkInterpreter) Run(source string) {
 	}
 
 	prsr := parser.NewParser(tokens)
-	expression, parserErr := prsr.Parse()
-	if parserErr != nil {
-		lox.ParserError(parserErr)
+	statements, parserErrs := prsr.Parse()
+	for _, parseErr := range parserErrs {
+		lox.ParserError(parseErr)
 		return
 	}
 
-	res, runtimeErr := interpreter.Visitor(expression)
+	_, runtimeErr := interpreter.Interpret(statements)
 	if runtimeErr != nil {
 		lox.RuntimeError(runtimeErr)
-	} else {
-		fmt.Println(lox.StringifyResult(res))
 	}
-}
-
-func (lox *TreeWalkInterpreter) StringifyResult(res any) string {
-	if res == nil {
-		return "nil"
-	}
-	if _, ok := res.(float64); ok {
-		if res.(float64) == math.Trunc(res.(float64)) {
-			return fmt.Sprintf("%.0f", res)
-		}
-
-		return fmt.Sprintf("%f", res)
-	}
-	return fmt.Sprint(res)
+	//res, runtimeErr := interpreter.ExpressionVisitor(expression)
+	//if runtimeErr != nil {
+	//	lox.RuntimeError(runtimeErr)
+	//} else {
+	//	fmt.Println(interpreter.StringifyResult(res))
+	//}
 }
 
 func (lox *TreeWalkInterpreter) ScannerError(err *scanner.Error) {

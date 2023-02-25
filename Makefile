@@ -14,7 +14,7 @@ help: ## help information about make commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: ## builds the executable and places it to ./build/
+build: generate ## builds the executable and places it to ./build/
 	go build -o ${BUILD_OUT} ${BUILD_SRC}
 
 .PHONY: generate
@@ -26,6 +26,6 @@ generate: ## runs go generate ./...
 test: generate build ## runs tests
 	go test ./...
 
-.PHONY: golox
-golox: build ## runs the interpreter executable from ./build/
+.PHONY: repl
+repl: build ## runs the interpreter executable from ./build/
 	${BUILD_OUT}

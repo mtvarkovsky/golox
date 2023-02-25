@@ -35,10 +35,18 @@ type (
 
 var (
 	expressionRules = []string{
-		"Binary   : left Expression, operator tokens.Token, right Expression",
-		"Unary    : operator tokens.Token, right Expression",
-		"Literal  : value any",
-		"Grouping : expression Expression",
+		"Assignment          : name tokens.Token, value Expression",
+		"Binary              : left Expression, operator tokens.Token, right Expression",
+		"Unary               : operator tokens.Token, right Expression",
+		"Variable            : name tokens.Token",
+		"Literal             : value any",
+		"Grouping            : expression Expression",
+	}
+	statementRules = []string{
+		"BlockStatement      : statements []Statement",
+		"ExpressionStatement : expression Expression",
+		"PrintStatement      : expression Expression",
+		"VarStatement        : name tokens.Token, initializer Expression",
 	}
 )
 
@@ -59,7 +67,14 @@ func main() {
 	defer f.Close()
 
 	gen := newGenerator(pkg, destination)
+	gen.defineFileHeader()
+
 	if err = gen.defineAST("Expression", expressionRules); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(65)
+		return
+	}
+	if err = gen.defineAST("Statement", statementRules); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(65)
 		return
@@ -76,13 +91,7 @@ func newGenerator(pkg string, destination string) *generator {
 	}
 }
 
-func (g *generator) defineAST(baseName string, rules []string) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("can't generate ast boilerplate: %v", r)
-		}
-	}()
-
+func (g *generator) defineFileHeader() {
 	// insert header
 	g.builder.WriteString("// This code is automatically generated. DO NOT EDIT.\n\n")
 
@@ -95,6 +104,14 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 	g.builder.WriteString("import \"")
 	g.builder.WriteString("github.com/mtvarkovsky/golox/pkg/tokens")
 	g.builder.WriteString("\"\n\n")
+}
+
+func (g *generator) defineAST(baseName string, rules []string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("can't generate ast boilerplate: %v", r)
+		}
+	}()
 
 	// define expression interface
 	g.builder.WriteString("type ")
