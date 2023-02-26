@@ -119,7 +119,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 	g.builder.WriteString("type ")
 	g.builder.WriteString(fmt.Sprintf("%s interface {\n", baseName))
 	g.builder.WriteString(fmt.Sprintf("\tAccept(visitor %sVisitor) (any, error)\n", baseName))
-	g.builder.WriteString(fmt.Sprintf("Type() %sType\n", baseName))
+	g.builder.WriteString(fmt.Sprintf("\tType() %sType\n", baseName))
 	g.builder.WriteString("}\n\n")
 
 	// define expression visitor signature
@@ -171,7 +171,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 
 		// define struct
 		g.builder.WriteString("type ")
-		g.builder.WriteString(strings.ToLower(name))
+		g.builder.WriteString(stringy.New(name).LcFirst())
 		g.builder.WriteString(" struct {\n")
 		// for each field add it to struct definition
 		for _, field := range fields {
@@ -185,7 +185,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		g.builder.WriteString("var _ ")
 		g.builder.WriteString(name)
 		g.builder.WriteString(" = (*")
-		g.builder.WriteString(strings.ToLower(name))
+		g.builder.WriteString(stringy.New(name).LcFirst())
 		g.builder.WriteString(")(nil)\n\n")
 
 		// define constructor
@@ -199,7 +199,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		g.builder.WriteString("")
 		g.builder.WriteString(" {\n")
 		g.builder.WriteString("\treturn &")
-		g.builder.WriteString(strings.ToLower(name))
+		g.builder.WriteString(stringy.New(name).LcFirst())
 		g.builder.WriteString("")
 		g.builder.WriteString("{\n")
 		// for each field initialize it
@@ -218,7 +218,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		// define Accept method
 		g.builder.WriteString("func (")
 		g.builder.WriteString("e *")
-		g.builder.WriteString(strings.ToLower(name))
+		g.builder.WriteString(stringy.New(name).LcFirst())
 		g.builder.WriteString("")
 		g.builder.WriteString(") ")
 		g.builder.WriteString(fmt.Sprintf("Accept(visitor %sVisitor) (any, error) {\n", baseName))
@@ -234,7 +234,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 
 			g.builder.WriteString("func (")
 			g.builder.WriteString("e *")
-			g.builder.WriteString(strings.ToLower(name))
+			g.builder.WriteString(stringy.New(name).LcFirst())
 			g.builder.WriteString("")
 			g.builder.WriteString(") ")
 			g.builder.WriteString(methodName)
@@ -249,7 +249,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		// define type method
 		g.builder.WriteString("func (")
 		g.builder.WriteString("e *")
-		g.builder.WriteString(strings.ToLower(name))
+		g.builder.WriteString(stringy.New(name).LcFirst())
 		g.builder.WriteString("")
 		g.builder.WriteString(") ")
 		g.builder.WriteString("Type")

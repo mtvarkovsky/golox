@@ -6,7 +6,7 @@ import "github.com/mtvarkovsky/golox/pkg/tokens"
 
 type Expression interface {
 	Accept(visitor ExpressionVisitor) (any, error)
-Type() ExpressionType
+	Type() ExpressionType
 }
 
 type ExpressionVisitor = func(Expression) (any, error)
@@ -268,7 +268,7 @@ func (e *grouping) Type() ExpressionType {
 
 type Statement interface {
 	Accept(visitor StatementVisitor) (any, error)
-Type() StatementType
+	Type() StatementType
 }
 
 type StatementVisitor = func(Statement) (any, error)
@@ -288,26 +288,26 @@ type BlockStatement interface {
 	Statements() []Statement
 }
 
-type blockstatement struct {
+type blockStatement struct {
 	statements []Statement
 }
 
-var _ BlockStatement = (*blockstatement)(nil)
+var _ BlockStatement = (*blockStatement)(nil)
 
 func NewBlockStatement(statements []Statement) BlockStatement {
-	return &blockstatement{
+	return &blockStatement{
 		statements: statements,
 	}
 }
 
-func (e *blockstatement) Accept(visitor StatementVisitor) (any, error) {
+func (e *blockStatement) Accept(visitor StatementVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *blockstatement) Statements() []Statement {
+func (e *blockStatement) Statements() []Statement {
 	return e.statements
 }
 
-func (e *blockstatement) Type() StatementType {
+func (e *blockStatement) Type() StatementType {
 	return BlockStatementStatementType
 }
 
@@ -317,26 +317,26 @@ type ExpressionStatement interface {
 	Expression() Expression
 }
 
-type expressionstatement struct {
+type expressionStatement struct {
 	expression Expression
 }
 
-var _ ExpressionStatement = (*expressionstatement)(nil)
+var _ ExpressionStatement = (*expressionStatement)(nil)
 
 func NewExpressionStatement(expression Expression) ExpressionStatement {
-	return &expressionstatement{
+	return &expressionStatement{
 		expression: expression,
 	}
 }
 
-func (e *expressionstatement) Accept(visitor StatementVisitor) (any, error) {
+func (e *expressionStatement) Accept(visitor StatementVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *expressionstatement) Expression() Expression {
+func (e *expressionStatement) Expression() Expression {
 	return e.expression
 }
 
-func (e *expressionstatement) Type() StatementType {
+func (e *expressionStatement) Type() StatementType {
 	return ExpressionStatementStatementType
 }
 
@@ -348,38 +348,38 @@ type IfStatement interface {
 	ElseStatement() Statement
 }
 
-type ifstatement struct {
+type ifStatement struct {
 	condition Expression
 	thenStatement Statement
 	elseStatement Statement
 }
 
-var _ IfStatement = (*ifstatement)(nil)
+var _ IfStatement = (*ifStatement)(nil)
 
 func NewIfStatement(condition Expression, thenStatement Statement, elseStatement Statement) IfStatement {
-	return &ifstatement{
+	return &ifStatement{
 		condition: condition,
 		thenStatement: thenStatement,
 		elseStatement: elseStatement,
 	}
 }
 
-func (e *ifstatement) Accept(visitor StatementVisitor) (any, error) {
+func (e *ifStatement) Accept(visitor StatementVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *ifstatement) Condition() Expression {
+func (e *ifStatement) Condition() Expression {
 	return e.condition
 }
 
-func (e *ifstatement) ThenStatement() Statement {
+func (e *ifStatement) ThenStatement() Statement {
 	return e.thenStatement
 }
 
-func (e *ifstatement) ElseStatement() Statement {
+func (e *ifStatement) ElseStatement() Statement {
 	return e.elseStatement
 }
 
-func (e *ifstatement) Type() StatementType {
+func (e *ifStatement) Type() StatementType {
 	return IfStatementStatementType
 }
 
@@ -389,26 +389,26 @@ type PrintStatement interface {
 	Expression() Expression
 }
 
-type printstatement struct {
+type printStatement struct {
 	expression Expression
 }
 
-var _ PrintStatement = (*printstatement)(nil)
+var _ PrintStatement = (*printStatement)(nil)
 
 func NewPrintStatement(expression Expression) PrintStatement {
-	return &printstatement{
+	return &printStatement{
 		expression: expression,
 	}
 }
 
-func (e *printstatement) Accept(visitor StatementVisitor) (any, error) {
+func (e *printStatement) Accept(visitor StatementVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *printstatement) Expression() Expression {
+func (e *printStatement) Expression() Expression {
 	return e.expression
 }
 
-func (e *printstatement) Type() StatementType {
+func (e *printStatement) Type() StatementType {
 	return PrintStatementStatementType
 }
 
@@ -419,32 +419,32 @@ type VarStatement interface {
 	Initializer() Expression
 }
 
-type varstatement struct {
+type varStatement struct {
 	name tokens.Token
 	initializer Expression
 }
 
-var _ VarStatement = (*varstatement)(nil)
+var _ VarStatement = (*varStatement)(nil)
 
 func NewVarStatement(name tokens.Token, initializer Expression) VarStatement {
-	return &varstatement{
+	return &varStatement{
 		name: name,
 		initializer: initializer,
 	}
 }
 
-func (e *varstatement) Accept(visitor StatementVisitor) (any, error) {
+func (e *varStatement) Accept(visitor StatementVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *varstatement) Name() tokens.Token {
+func (e *varStatement) Name() tokens.Token {
 	return e.name
 }
 
-func (e *varstatement) Initializer() Expression {
+func (e *varStatement) Initializer() Expression {
 	return e.initializer
 }
 
-func (e *varstatement) Type() StatementType {
+func (e *varStatement) Type() StatementType {
 	return VarStatementStatementType
 }
 
@@ -455,32 +455,32 @@ type WhileStatement interface {
 	Body() Statement
 }
 
-type whilestatement struct {
+type whileStatement struct {
 	condition Expression
 	body Statement
 }
 
-var _ WhileStatement = (*whilestatement)(nil)
+var _ WhileStatement = (*whileStatement)(nil)
 
 func NewWhileStatement(condition Expression, body Statement) WhileStatement {
-	return &whilestatement{
+	return &whileStatement{
 		condition: condition,
 		body: body,
 	}
 }
 
-func (e *whilestatement) Accept(visitor StatementVisitor) (any, error) {
+func (e *whileStatement) Accept(visitor StatementVisitor) (any, error) {
 	return visitor(e)
 }
-func (e *whilestatement) Condition() Expression {
+func (e *whileStatement) Condition() Expression {
 	return e.condition
 }
 
-func (e *whilestatement) Body() Statement {
+func (e *whileStatement) Body() Statement {
 	return e.body
 }
 
-func (e *whilestatement) Type() StatementType {
+func (e *whileStatement) Type() StatementType {
 	return WhileStatementStatementType
 }
 
