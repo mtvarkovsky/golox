@@ -58,6 +58,7 @@ func NewParser(input []tokens.Token) Parser {
 	}
 }
 
+// TODO: refactor this
 func (p *parser) Parse() ([]ast.Statement, []*Error) {
 	var statements []ast.Statement
 	var errs []*Error
@@ -69,11 +70,6 @@ func (p *parser) Parse() ([]ast.Statement, []*Error) {
 		}
 	}
 	return statements, errs
-	//expression, err := p.expression()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//return expression, nil
 }
 
 func (p *parser) declaration() (ast.Statement, *Error) {
@@ -117,8 +113,14 @@ func (p *parser) varDeclaration() (ast.Statement, *Error) {
 }
 
 func (p *parser) statement() (ast.Statement, *Error) {
+	if p.match(tokens.If) {
+		return p.ifStatement()
+	}
 	if p.match(tokens.Print) {
 		return p.printStatement()
+	}
+	if p.match(tokens.While) {
+		return p.whileStatement()
 	}
 	if p.match(tokens.LeftBrace) {
 		block, err := p.blockStatement()
@@ -129,6 +131,53 @@ func (p *parser) statement() (ast.Statement, *Error) {
 	}
 
 	return p.expressionStatement()
+}
+
+func (p *parser) whileStatement() (ast.Statement, *Error) {
+	_, err := p.consume(tokens.LeftParen, "Expect '(' after 'while'.")
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(tokens.RightParen, "Expect ')' after condition.")
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewWhileStatement(condition, body), nil
+}
+
+func (p *parser) ifStatement() (ast.Statement, *Error) {
+	_, err := p.consume(tokens.LeftParen, "Expect '(' after 'if'.")
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(tokens.RightParen, "Expect ')' after 'if' condition.")
+	if err != nil {
+		return nil, err
+	}
+	thenStatement, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+	var elseStatement ast.Statement
+	if p.match(tokens.Else) {
+		elseStatement, err = p.statement()
+	}
+	if err != nil {
+		return nil, err
+	}
+	return ast.NewIfStatement(condition, thenStatement, elseStatement), nil
 }
 
 func (p *parser) blockStatement() ([]ast.Statement, *Error) {
@@ -177,7 +226,7 @@ func (p *parser) expression() (ast.Expression, *Error) {
 }
 
 func (p *parser) assignment() (ast.Expression, *Error) {
-	expression, err := p.equality()
+	expression, err := p.or()
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +250,38 @@ func (p *parser) assignment() (ast.Expression, *Error) {
 		}
 	}
 
+	return expression, nil
+}
+
+func (p *parser) or() (ast.Expression, *Error) {
+	expression, err := p.and()
+	if err != nil {
+		return nil, err
+	}
+	for p.match(tokens.Or) {
+		operator := p.previous()
+		right, e := p.and()
+		if e != nil {
+			return nil, e
+		}
+		expression = ast.NewLogical(expression, operator, right)
+	}
+	return expression, nil
+}
+
+func (p *parser) and() (ast.Expression, *Error) {
+	expression, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+	for p.match(tokens.And) {
+		operator := p.previous()
+		right, e := p.equality()
+		if e != nil {
+			return nil, e
+		}
+		expression = ast.NewLogical(expression, operator, right)
+	}
 	return expression, nil
 }
 

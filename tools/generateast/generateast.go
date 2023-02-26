@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"github.com/gobeam/stringy"
 	"os"
 	"strings"
 )
@@ -39,14 +38,17 @@ var (
 		"Binary              : left Expression, operator tokens.Token, right Expression",
 		"Unary               : operator tokens.Token, right Expression",
 		"Variable            : name tokens.Token",
+		"Logical             : left Expression, operator tokens.Token, right Expression",
 		"Literal             : value any",
 		"Grouping            : expression Expression",
 	}
 	statementRules = []string{
 		"BlockStatement      : statements []Statement",
 		"ExpressionStatement : expression Expression",
+		"IfStatement         : condition Expression, thenStatement Statement, elseStatement Statement",
 		"PrintStatement      : expression Expression",
 		"VarStatement        : name tokens.Token, initializer Expression",
+		"WhileStatement      : condition Expression, body Statement",
 	}
 )
 
@@ -117,10 +119,29 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 	g.builder.WriteString("type ")
 	g.builder.WriteString(fmt.Sprintf("%s interface {\n", baseName))
 	g.builder.WriteString(fmt.Sprintf("\tAccept(visitor %sVisitor) (any, error)\n", baseName))
+	g.builder.WriteString(fmt.Sprintf("Type() %sType\n", baseName))
 	g.builder.WriteString("}\n\n")
 
 	// define expression visitor signature
 	g.builder.WriteString(fmt.Sprintf("type %sVisitor = func(%s) (any, error)\n", baseName, baseName))
+
+	// define ast type type
+	g.builder.WriteString("type ")
+	g.builder.WriteString(baseName + "Type int")
+	g.builder.WriteString("\n\n")
+
+	// define ast type values
+	g.builder.WriteString("const (\n")
+	for i, rule := range rules {
+		parts := strings.Split(rule, ":")
+		name := strings.Trim(parts[0], " ")
+		if i == 0 {
+			g.builder.WriteString(fmt.Sprintf("\t%s%sType %sType = iota\n", name, baseName, baseName))
+		} else {
+			g.builder.WriteString(fmt.Sprintf("\t%s%sType\n", name, baseName))
+		}
+	}
+	g.builder.WriteString(")\n")
 
 	// go through all rules
 	for _, rule := range rules {
@@ -138,7 +159,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		// for each field add getter
 		for _, field := range fields {
 			fieldParts := strings.Split(strings.Trim(field, " "), " ")
-			methodName := cases.Title(language.Und).String(fieldParts[0])
+			methodName := stringy.New(fieldParts[0]).CamelCase()
 			methodRType := fieldParts[1]
 			g.builder.WriteString("\t")
 			g.builder.WriteString(methodName)
@@ -208,7 +229,7 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 		for _, field := range fields {
 			fieldParts := strings.Split(strings.Trim(field, " "), " ")
 			fieldName := fieldParts[0]
-			methodName := cases.Title(language.Und).String(fieldParts[0])
+			methodName := stringy.New(fieldParts[0]).CamelCase()
 			methodRType := fieldParts[1]
 
 			g.builder.WriteString("func (")
@@ -224,6 +245,18 @@ func (g *generator) defineAST(baseName string, rules []string) (err error) {
 			g.builder.WriteString(fieldName)
 			g.builder.WriteString("\n}\n\n")
 		}
+
+		// define type method
+		g.builder.WriteString("func (")
+		g.builder.WriteString("e *")
+		g.builder.WriteString(strings.ToLower(name))
+		g.builder.WriteString("")
+		g.builder.WriteString(") ")
+		g.builder.WriteString("Type")
+		g.builder.WriteString("() ")
+		g.builder.WriteString(fmt.Sprintf("%sType {\n", baseName))
+		g.builder.WriteString(fmt.Sprintf("\treturn %s%sType\n", name, baseName))
+		g.builder.WriteString("}\n\n")
 	}
 
 	return nil

@@ -72,12 +72,6 @@ func (lox *TreeWalkInterpreter) Run(source string) {
 	if runtimeErr != nil {
 		lox.RuntimeError(runtimeErr)
 	}
-	//res, runtimeErr := interpreter.ExpressionVisitor(expression)
-	//if runtimeErr != nil {
-	//	lox.RuntimeError(runtimeErr)
-	//} else {
-	//	fmt.Println(interpreter.StringifyResult(res))
-	//}
 }
 
 func (lox *TreeWalkInterpreter) ScannerError(err *scanner.Error) {

@@ -17,6 +17,7 @@ type (
 
 var Env = NewEnvironment(nil)
 
+// TODO: refactor this
 func Interpret(statements []ast.Statement) (any, error) {
 	for _, statement := range statements {
 		err := execute(statement)
@@ -33,18 +34,68 @@ func execute(statement ast.Statement) error {
 }
 
 func StatementVisitor(statement ast.Statement) (any, error) {
-	switch s := statement.(type) {
-	case ast.BlockStatement:
-		return visitBlockStatement(s)
-	case ast.VarStatement:
-		return visitVarStatement(s)
-	case ast.PrintStatement:
-		return visitPrintStatement(s)
-	case ast.ExpressionStatement:
-		return visitExpressionStatement(s)
+	switch statement.Type() {
+	case ast.VarStatementStatementType:
+		return visitVarStatement(statement.(ast.VarStatement))
+	case ast.BlockStatementStatementType:
+		return visitBlockStatement(statement.(ast.BlockStatement))
+	case ast.WhileStatementStatementType:
+		return visitWhileStatement(statement.(ast.WhileStatement))
+	case ast.ExpressionStatementStatementType:
+		return visitExpressionStatement(statement.(ast.ExpressionStatement))
+	case ast.PrintStatementStatementType:
+		return visitPrintStatement(statement.(ast.PrintStatement))
+	case ast.IfStatementStatementType:
+		return visitIfStatement(statement.(ast.IfStatement))
 	}
 
 	return nil, &RuntimeError{err: fmt.Errorf("unknow statement type")}
+}
+
+func visitIfStatement(statement ast.IfStatement) (any, error) {
+	res, err := evaluate(statement.Condition())
+	if err != nil {
+		return nil, err
+	}
+	b, err := toBoolean(res)
+	if b {
+		err = execute(statement.ThenStatement())
+		if err != nil {
+			return nil, err
+		}
+	} else if statement.ElseStatement() != nil {
+		err = execute(statement.ElseStatement())
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
+func visitWhileStatement(statement ast.WhileStatement) (any, error) {
+	cond, err := evaluate(statement.Condition())
+	if err != nil {
+		return nil, err
+	}
+	b, err := toBoolean(cond)
+	if err != nil {
+		return nil, err
+	}
+	for b {
+		err = execute(statement.Body())
+		if err != nil {
+			return nil, err
+		}
+		cond, err = evaluate(statement.Condition())
+		if err != nil {
+			return nil, err
+		}
+		b, err = toBoolean(cond)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
 func visitPrintStatement(statement ast.PrintStatement) (any, error) {
@@ -116,22 +167,46 @@ func StringifyResult(res any) string {
 }
 
 func ExpressionVisitor(expression ast.Expression) (any, error) {
-	switch e := expression.(type) {
-	case ast.Assignment:
-		return visitAssignmentExpression(e)
-	case ast.Binary:
-		return visitBinaryExpression(e)
-	case ast.Unary:
-		return visitUnaryExpression(e)
-	case ast.Literal:
-		return visitLiteral(e)
-	case ast.Grouping:
-		return visitGrouping(e)
-	case ast.Variable:
-		return visitVariable(e)
+	switch expression.Type() {
+	case ast.AssignmentExpressionType:
+		return visitAssignmentExpression(expression.(ast.Assignment))
+	case ast.BinaryExpressionType:
+		return visitBinaryExpression(expression.(ast.Binary))
+	case ast.LogicalExpressionType:
+		return visitLogical(expression.(ast.Logical))
+	case ast.UnaryExpressionType:
+		return visitUnaryExpression(expression.(ast.Unary))
+	case ast.LiteralExpressionType:
+		return visitLiteral(expression.(ast.Literal))
+	case ast.GroupingExpressionType:
+		return visitGrouping(expression.(ast.Grouping))
+	case ast.VariableExpressionType:
+		return visitVariable(expression.(ast.Variable))
 	}
 
 	return nil, &RuntimeError{err: fmt.Errorf("unknow expression type")}
+}
+
+func visitLogical(expression ast.Logical) (any, error) {
+	left, err := evaluate(expression.Left())
+	if err != nil {
+		return nil, err
+	}
+	b, err := toBoolean(left)
+	if err != nil {
+		return nil, err
+	}
+	if expression.Operator().Type() == tokens.Or {
+		if b {
+			return left, nil
+		}
+	} else {
+		if !b {
+			return left, nil
+		}
+	}
+
+	return evaluate(expression.Right())
 }
 
 func visitVariable(expression ast.Variable) (any, error) {
