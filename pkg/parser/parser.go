@@ -113,6 +113,9 @@ func (p *parser) varDeclaration() (ast.Statement, *Error) {
 }
 
 func (p *parser) statement() (ast.Statement, *Error) {
+	if p.match(tokens.For) {
+		return p.forStatement()
+	}
 	if p.match(tokens.If) {
 		return p.ifStatement()
 	}
@@ -131,6 +134,81 @@ func (p *parser) statement() (ast.Statement, *Error) {
 	}
 
 	return p.expressionStatement()
+}
+
+func (p *parser) forStatement() (ast.Statement, *Error) {
+	_, err := p.consume(tokens.LeftParen, "Expect '(' after 'for'.")
+	if err != nil {
+		return nil, err
+	}
+	var initializer ast.Statement
+	if p.match(tokens.Semicolon) {
+		initializer = nil
+	} else if p.match(tokens.Var) {
+		initializer, err = p.varDeclaration()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = p.expressionStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var condition ast.Expression
+	if !p.check(tokens.Semicolon) {
+		condition, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = p.consume(tokens.Semicolon, "Expect ';' after loop condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	var increment ast.Expression
+	if !p.check(tokens.RightParen) {
+		increment, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = p.consume(tokens.RightParen, "Expect ')' after for clauses.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if increment != nil {
+		body = ast.NewBlockStatement(
+			[]ast.Statement{
+				body,
+				ast.NewExpressionStatement(increment),
+			},
+		)
+	}
+
+	if condition == nil {
+		condition = ast.NewLiteral(true)
+	}
+	body = ast.NewWhileStatement(condition, body)
+
+	if initializer != nil {
+		body = ast.NewBlockStatement(
+			[]ast.Statement{
+				initializer,
+				body,
+			},
+		)
+	}
+
+	return body, nil
 }
 
 func (p *parser) whileStatement() (ast.Statement, *Error) {
